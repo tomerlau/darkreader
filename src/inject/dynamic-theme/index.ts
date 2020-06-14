@@ -14,6 +14,7 @@ import {getCSSFilterValue} from '../../generators/css-filter';
 import {modifyColor} from '../../generators/modify-colors';
 import {createTextStyle} from '../../generators/text-style';
 import {FilterConfig, DynamicThemeFix} from '../../definitions';
+import {rgbToHSL, parse} from '../../utils/color';
 
 const styleManagers = new Map<StyleElement, StyleManager>();
 const variables = new Map<string, string>();
@@ -330,10 +331,25 @@ function stopWatchingForUpdates() {
     removeDOMReadyListener(onDOMReady);
 }
 
+function checkDarkSite() {
+    const backgroundColor = getComputedStyle(document.body).backgroundColor;
+    const RGB = parse(backgroundColor);
+    const HSL = rgbToHSL(RGB);
+    if (HSL.l >= 0.5 ) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
 export function createOrUpdateDynamicTheme(filterConfig: FilterConfig, dynamicThemeFixes: DynamicThemeFix, iframe: boolean) {
     filter = filterConfig;
     fixes = dynamicThemeFixes;
     isIFrame = iframe;
+    if (checkDarkSite()) {
+        chrome.runtime.sendMessage({type: 'dark-site'});
+        return;
+    }
     if (document.head) {
         createThemeAndWatchForUpdates();
     } else {
